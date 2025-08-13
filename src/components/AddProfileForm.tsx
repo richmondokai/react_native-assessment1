@@ -15,6 +15,7 @@ import ImagePicker from './ImagePicker';
 import { useColors } from '../context/ThemeContext';
 import { typography } from '../styles/typography';
 import { spacing, borderRadius } from '../styles/spacing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AddProfileFormProps {
   onAddProfile: (profile: Omit<Profile, 'id'>) => void;
@@ -39,6 +40,7 @@ const AddProfileForm: React.FC<AddProfileFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const styles = createStyles(colors);
 
   const validateForm = () => {
@@ -111,30 +113,38 @@ const AddProfileForm: React.FC<AddProfileFormProps> = ({
     placeholder: string,
     multiline = false,
     keyboardType: 'default' | 'email-address' | 'phone-pad' | 'url' = 'default'
-  ) => (
-    <View style={styles.inputGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[
-          styles.input,
-          multiline && styles.multilineInput,
-          errors[field] && styles.inputError,
-        ]}
-        value={formData[field as keyof typeof formData]}
-        onChangeText={value => updateFormData(field, value)}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textTertiary}
-        multiline={multiline}
-        numberOfLines={multiline ? 4 : 1}
-        keyboardType={keyboardType}
-        autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
-        autoCorrect={keyboardType === 'email-address' || keyboardType === 'url' ? false : true}
-      />
-      {errors[field] ? (
-        <Text style={styles.errorText}>{errors[field]}</Text>
-      ) : null}
-    </View>
-  );
+  ) => {
+    const isRequired = label.includes(' *');
+    const labelText = label.replace(' *', '');
+    
+    return (
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>
+          {labelText}
+          {isRequired && <Text style={styles.asterisk}> *</Text>}
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            multiline && styles.multilineInput,
+            errors[field] && styles.inputError,
+          ]}
+          value={formData[field as keyof typeof formData]}
+          onChangeText={value => updateFormData(field, value)}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textTertiary}
+          multiline={multiline}
+          numberOfLines={multiline ? 4 : 1}
+          keyboardType={keyboardType}
+          autoCapitalize={keyboardType === 'email-address' ? 'none' : 'sentences'}
+          autoCorrect={keyboardType === 'email-address' || keyboardType === 'url' ? false : true}
+        />
+        {errors[field] ? (
+          <Text style={styles.errorText}>{errors[field]}</Text>
+        ) : null}
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -151,7 +161,11 @@ const AddProfileForm: React.FC<AddProfileFormProps> = ({
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.form} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+      >
         {renderInput('name', 'Full Name *', 'Enter full name')}
         {renderInput('title', 'Job Title *', 'Enter job title')}
         {renderInput('email', 'Email *', 'Enter email address', false, 'email-address')}
@@ -159,7 +173,10 @@ const AddProfileForm: React.FC<AddProfileFormProps> = ({
         {renderInput('bio', 'Bio *', 'Tell us about yourself...', true)}
         
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Profile Photo *</Text>
+          <Text style={styles.label}>
+            Profile Photo
+            <Text style={styles.asterisk}> *</Text>
+          </Text>
           <ImagePicker
             currentImage={formData.avatar}
             onImageSelected={(imageUri) => updateFormData('avatar', imageUri)}
@@ -174,10 +191,6 @@ const AddProfileForm: React.FC<AddProfileFormProps> = ({
         {renderInput('linkedin', 'LinkedIn', 'Enter LinkedIn URL', false, 'url')}
         {renderInput('twitter', 'Twitter', 'Enter Twitter URL', false, 'url')}
         {renderInput('github', 'GitHub', 'Enter GitHub URL', false, 'url')}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>* Required fields</Text>
-        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -205,13 +218,14 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   cancelButton: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: colors.warning,
+    fontWeight: typography.fontWeight.bold,
     fontFamily: typography.fontFamily,
   },
   saveButton: {
     fontSize: typography.fontSize.base,
     color: colors.primary,
-    fontWeight: typography.fontWeight.semibold,
+    fontWeight: typography.fontWeight.bold,
     fontFamily: typography.fontFamily,
   },
   form: {
@@ -222,8 +236,8 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginVertical: spacing.sm,
   },
   label: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.medium,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
     color: colors.textPrimary,
     marginBottom: spacing.xs,
     fontFamily: typography.fontFamily,
@@ -260,14 +274,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: spacing.sm,
     fontFamily: typography.fontFamily,
   },
-  footer: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
-    fontFamily: typography.fontFamily,
+
+  asterisk: {
+    color: colors.danger,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.medium,
   },
 });
 
